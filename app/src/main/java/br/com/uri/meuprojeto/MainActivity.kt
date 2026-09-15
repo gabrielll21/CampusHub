@@ -1,23 +1,21 @@
 package br.com.uri.meuprojeto
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
-import com.google.firebase.auth.FirebaseAuth
+import androidx.activity.compose.setContent
+import br.com.uri.meuprojeto.ui.RegistrationScreen
+import br.com.uri.meuprojeto.ui.theme.MeuProjetoTheme
 
 class MainActivity : ComponentActivity() {
-
-    private lateinit var auth: FirebaseAuth
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        auth = FirebaseAuth.getInstance()
-
-        Toast.makeText(
-            this,
-            "Firebase conectado!",
-            Toast.LENGTH_LONG
-        ).show()
+        setContent {
+            MeuProjetoTheme {
+                RegistrationScreen(
+                    onRegister = { _, _, _ -> },
+                    onBack = {}
+                )
+            }
+        }
     }
 }
