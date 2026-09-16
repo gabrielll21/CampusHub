@@ -12,6 +12,7 @@ import br.com.uri.meuprojeto.auth.AuthRepository
 import br.com.uri.meuprojeto.auth.RegistrationError
 import br.com.uri.meuprojeto.ui.RegistrationScreen
 import br.com.uri.meuprojeto.ui.theme.MeuProjetoTheme
+import br.com.uri.meuprojeto.user.UserRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,12 +20,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             MeuProjetoTheme {
                 val authRepository = remember { AuthRepository() }
+                val userRepository = remember { UserRepository() }
                 var isLoading by rememberSaveable { mutableStateOf(false) }
                 var feedbackMessage by rememberSaveable { mutableStateOf<String?>(null) }
                 var isSuccess by rememberSaveable { mutableStateOf(false) }
 
                 RegistrationScreen(
-                    onRegister = { _, email, password ->
+                    onRegister = { name, email, password ->
                         if (password.length < 6) {
                             isSuccess = false
                             feedbackMessage = "A senha precisa ter pelo menos 6 caracteres."
@@ -35,10 +37,22 @@ class MainActivity : ComponentActivity() {
                             authRepository.registerUser(
                                 email = email,
                                 password = password,
-                                onSuccess = {
-                                    isLoading = false
-                                    isSuccess = true
-                                    feedbackMessage = "Cadastro realizado com sucesso!"
+                                onSuccess = { uid ->
+                                    userRepository.saveUserProfile(
+                                        uid = uid,
+                                        name = name.trim(),
+                                        email = email.trim(),
+                                        onSuccess = {
+                                            isLoading = false
+                                            isSuccess = true
+                                            feedbackMessage = "Cadastro realizado com sucesso!"
+                                        },
+                                        onError = { _ ->
+                                            isLoading = false
+                                            isSuccess = false
+                                            feedbackMessage = "Sua conta foi criada, mas não foi possível salvar o perfil."
+                                        }
+                                    )
                                 },
                                 onError = { error ->
                                     isLoading = false

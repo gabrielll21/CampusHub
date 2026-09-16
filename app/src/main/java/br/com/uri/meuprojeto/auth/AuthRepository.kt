@@ -11,12 +11,19 @@ class AuthRepository(
     fun registerUser(
         email: String,
         password: String,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (RegistrationError) -> Unit
     ) {
         firebaseAuth
             .createUserWithEmailAndPassword(email.trim(), password)
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { result ->
+                val uid = result.user?.uid
+                if (uid != null) {
+                    onSuccess(uid)
+                } else {
+                    onError(RegistrationError.UNKNOWN)
+                }
+            }
             .addOnFailureListener { exception ->
                 val error = when (exception) {
                     is FirebaseAuthWeakPasswordException -> RegistrationError.WEAK_PASSWORD
