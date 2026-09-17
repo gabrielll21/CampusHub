@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
@@ -56,11 +58,19 @@ fun DashboardScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 600.dp)
+                        .widthIn(max = 640.dp)
                 ) {
+                    Text(
+                        text = "CampusHub",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     if (errorMessage != null) {
                         Text(
-                            text = "Dashboard",
+                            text = "Home",
                             modifier = Modifier.semantics { heading() },
                             style = MaterialTheme.typography.headlineMedium
                         )
@@ -89,44 +99,58 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Bem-vindo ao seu dashboard.",
+                            text = "Encontre eventos e experiências no seu campus.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyLarge
                         )
 
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = "Informações do usuário",
-                                    style = MaterialTheme.typography.titleLarge
-                                )
+                        SectionTitle(
+                            title = "Próximos eventos",
+                            supportingText = "Conteúdo demonstrativo da Sprint 1"
+                        )
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                                ProfileField(label = "Nome", value = name)
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                ProfileField(label = "E-mail", value = email)
+                        DEMO_EVENTS.forEachIndexed { index, event ->
+                            EventCard(event = event)
+                            if (index < DEMO_EVENTS.lastIndex) {
+                                Spacer(modifier = Modifier.height(12.dp))
                             }
                         }
 
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        Text(
-                            text = "Status do aplicativo",
-                            style = MaterialTheme.typography.titleLarge
+                        SectionTitle(
+                            title = "Atalhos",
+                            supportingText = "Funcionalidades planejadas para as próximas Sprints"
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                        StatusCard(title = "Status da conta", value = "Ativa")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        StatusCard(title = "Autenticação", value = "Firebase")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        StatusCard(title = "Banco de dados", value = "Firestore")
+                        ShortcutCard(title = "Eventos")
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ShortcutCard(title = "Meus Eventos")
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ShortcutCard(title = "Meu Perfil")
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text(
+                                    text = "Conta conectada",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = email,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
@@ -144,41 +168,90 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun ProfileField(
-    label: String,
-    value: String
+private fun SectionTitle(
+    title: String,
+    supportingText: String
 ) {
     Text(
-        text = label,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.labelLarge
+        text = title,
+        style = MaterialTheme.typography.titleLarge
     )
+    Spacer(modifier = Modifier.height(4.dp))
     Text(
-        text = value,
-        style = MaterialTheme.typography.bodyLarge
+        text = supportingText,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodySmall
     )
 }
 
 @Composable
-private fun StatusCard(
-    title: String,
-    value: String
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
+private fun EventCard(event: DemoEvent) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = title,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelLarge
-            )
-            Text(
-                text = value,
-                color = MaterialTheme.colorScheme.primary,
+                text = event.title,
                 style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = event.details,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Evento demonstrativo",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelMedium
             )
         }
     }
 }
+
+@Composable
+private fun ShortcutCard(title: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "Em breve",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+    }
+}
+
+private data class DemoEvent(
+    val title: String,
+    val details: String
+)
+
+private val DEMO_EVENTS = listOf(
+    DemoEvent(
+        title = "Semana Acadêmica",
+        details = "25 de setembro • Auditório"
+    ),
+    DemoEvent(
+        title = "Hackathon URI",
+        details = "30 de setembro • Laboratório 2"
+    ),
+    DemoEvent(
+        title = "Feira de Tecnologia",
+        details = "05 de outubro • Prédio 5"
+    )
+)
