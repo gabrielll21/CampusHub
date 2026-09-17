@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import br.com.uri.meuprojeto.auth.AuthRepository
 import br.com.uri.meuprojeto.auth.LoginError
 import br.com.uri.meuprojeto.auth.RegistrationError
+import br.com.uri.meuprojeto.ui.DashboardScreen
 import br.com.uri.meuprojeto.ui.LoginScreen
 import br.com.uri.meuprojeto.ui.RegistrationScreen
 import br.com.uri.meuprojeto.ui.theme.MeuProjetoTheme
@@ -38,18 +40,10 @@ class MainActivity : ComponentActivity() {
                         var feedbackMessage by rememberSaveable {
                             mutableStateOf<String?>(null)
                         }
-                        var isSuccess by rememberSaveable { mutableStateOf(false) }
-
-                        val onLoginSuccess: () -> Unit = {
-                            isLoading = false
-                            isSuccess = true
-                            feedbackMessage = "Login realizado com sucesso!"
-                        }
 
                         LoginScreen(
                             onLogin = { email, password ->
                                 if (!Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
-                                    isSuccess = false
                                     feedbackMessage = "Digite um e-mail válido."
                                 } else {
                                     isLoading = true
@@ -58,10 +52,16 @@ class MainActivity : ComponentActivity() {
                                     authRepository.loginUser(
                                         email = email,
                                         password = password,
-                                        onSuccess = onLoginSuccess,
+                                        onSuccess = {
+                                            isLoading = false
+                                            navController.navigate(DASHBOARD_ROUTE) {
+                                                popUpTo(LOGIN_ROUTE) {
+                                                    inclusive = true
+                                                }
+                                            }
+                                        },
                                         onError = { error ->
                                             isLoading = false
-                                            isSuccess = false
                                             feedbackMessage = error.toUserMessage()
                                         }
                                     )
@@ -71,8 +71,7 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(REGISTRATION_ROUTE)
                             },
                             isLoading = isLoading,
-                            feedbackMessage = feedbackMessage,
-                            isSuccess = isSuccess
+                            feedbackMessage = feedbackMessage
                         )
                     }
 
@@ -131,6 +130,57 @@ class MainActivity : ComponentActivity() {
                             isSuccess = isSuccess
                         )
                     }
+
+                    composable(DASHBOARD_ROUTE) {
+                        var name by rememberSaveable { mutableStateOf<String?>(null) }
+                        var email by rememberSaveable { mutableStateOf<String?>(null) }
+                        var isLoading by rememberSaveable { mutableStateOf(true) }
+                        var errorMessage by rememberSaveable {
+                            mutableStateOf<String?>(null)
+                        }
+
+                        LaunchedEffect(Unit) {
+                            isLoading = true
+                            errorMessage = null
+
+                            val uid = authRepository.getCurrentUserUid()
+                            if (uid == null) {
+                                isLoading = false
+                                errorMessage =
+                                    "Não foi possível identificar o usuário autenticado."
+                            } else {
+                                userRepository.getUserProfile(
+                                    uid = uid,
+                                    onSuccess = { profile ->
+                                        name = profile.name
+                                        email = profile.email
+                                        isLoading = false
+                                    },
+                                    onError = {
+                                        isLoading = false
+                                        errorMessage =
+                                            "Não foi possível carregar seu perfil."
+                                    }
+                                )
+                            }
+                        }
+
+                        DashboardScreen(
+                            name = name,
+                            email = email,
+                            isLoading = isLoading,
+                            errorMessage = errorMessage,
+                            onLogout = {
+                                authRepository.signOut()
+                                navController.navigate(LOGIN_ROUTE) {
+                                    popUpTo(DASHBOARD_ROUTE) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -151,3 +201,4 @@ private fun RegistrationError.toUserMessage(): String = when (this) {
 
 private const val LOGIN_ROUTE = "login"
 private const val REGISTRATION_ROUTE = "registration"
+private const val DASHBOARD_ROUTE = "dashboard"

@@ -40,12 +40,19 @@ class AuthRepository(
     fun loginUser(
         email: String,
         password: String,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (LoginError) -> Unit
     ) {
         firebaseAuth
             .signInWithEmailAndPassword(email.trim(), password)
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { result ->
+                val uid = result.user?.uid
+                if (uid != null) {
+                    onSuccess(uid)
+                } else {
+                    onError(LoginError.UNKNOWN)
+                }
+            }
             .addOnFailureListener { exception ->
                 Log.e(TAG, "Erro ao autenticar usuário", exception)
                 val error = when (exception) {
@@ -55,6 +62,12 @@ class AuthRepository(
                 }
                 onError(error)
             }
+    }
+
+    fun getCurrentUserUid(): String? = firebaseAuth.currentUser?.uid
+
+    fun signOut() {
+        firebaseAuth.signOut()
     }
 
     private companion object {

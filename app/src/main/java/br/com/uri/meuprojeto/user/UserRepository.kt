@@ -29,7 +29,40 @@ class UserRepository(
             }
     }
 
+    fun getUserProfile(
+        uid: String,
+        onSuccess: (UserProfile) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        firestore
+            .collection("users")
+            .document(uid)
+            .get()
+            .addOnSuccessListener { document ->
+                val name = document.getString("name")
+                val email = document.getString("email")
+
+                if (document.exists() && name != null && email != null) {
+                    onSuccess(UserProfile(name = name, email = email))
+                } else {
+                    val exception =
+                        IllegalStateException("Perfil do usuário incompleto ou ausente")
+                    Log.e(TAG, "Erro ao carregar perfil do Firestore", exception)
+                    onError(exception)
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Erro ao carregar perfil do Firestore", exception)
+                onError(exception)
+            }
+    }
+
     private companion object {
         const val TAG = "UserRepository"
     }
 }
+
+data class UserProfile(
+    val name: String,
+    val email: String
+)
