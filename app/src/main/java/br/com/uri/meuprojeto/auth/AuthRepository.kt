@@ -70,6 +70,29 @@ class AuthRepository(
         firebaseAuth.signOut()
     }
 
+    fun sendPasswordResetEmail(
+        email: String,
+        onSuccess: () -> Unit,
+        onError: (PasswordResetError) -> Unit
+    ) {
+        firebaseAuth
+            .sendPasswordResetEmail(email.trim())
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Erro ao enviar e-mail de recuperação", exception)
+                val error = when (exception) {
+                    is FirebaseAuthInvalidCredentialsException -> {
+                        PasswordResetError.INVALID_EMAIL
+                    }
+                    is FirebaseAuthInvalidUserException -> {
+                        PasswordResetError.USER_NOT_FOUND
+                    }
+                    else -> PasswordResetError.UNKNOWN
+                }
+                onError(error)
+            }
+    }
+
     private companion object {
         const val TAG = "AuthRepository"
     }
@@ -84,5 +107,11 @@ enum class RegistrationError {
 
 enum class LoginError {
     INVALID_CREDENTIALS,
+    UNKNOWN
+}
+
+enum class PasswordResetError {
+    INVALID_EMAIL,
+    USER_NOT_FOUND,
     UNKNOWN
 }

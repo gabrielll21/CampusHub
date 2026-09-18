@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,15 +32,23 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import br.com.uri.meuprojeto.auth.PasswordResetError
 
 @Composable
 fun ForgotPasswordScreen(
-    onSendResetEmail: (String) -> Unit,
+    onSendResetEmail: (
+        email: String,
+        onSuccess: () -> Unit,
+        onError: (PasswordResetError) -> Unit
+    ) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var email by rememberSaveable { mutableStateOf("") }
-    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var validationError by rememberSaveable { mutableStateOf<String?>(null) }
+    var feedbackMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var feedbackIsError by rememberSaveable { mutableStateOf(false) }
+    var isSending by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -83,14 +93,16 @@ fun ForgotPasswordScreen(
                 value = email,
                 onValueChange = {
                     email = it
-                    errorMessage = null
+                    validationError = null
+                    feedbackMessage = null
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("E-mail") },
                 placeholder = { Text("seuemail@universidade.edu.br") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                isError = errorMessage != null,
-                supportingText = errorMessage?.let { message ->
+                isError = validationError != null,
+                enabled = !isSending,
+                supportingText = validationError?.let { message ->
                     {
                         Text(
                             text = message,
@@ -103,30 +115,81 @@ fun ForgotPasswordScreen(
                 singleLine = true
             )
 
+            feedbackMessage?.let { message ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = message,
+                    modifier = Modifier.semantics {
+                        liveRegion = if (feedbackIsError) {
+                            LiveRegionMode.Assertive
+                        } else {
+                            LiveRegionMode.Polite
+                        }
+                    },
+                    color = if (feedbackIsError) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
                     val normalizedEmail = email.trim()
                     if (normalizedEmail.isEmpty()) {
-                        errorMessage = "Digite seu e-mail."
+                        validationError = "Digite seu e-mail."
                     } else {
-                        onSendResetEmail(normalizedEmail)
+                        isSending = true
+                        feedbackMessage = null
+
+                        onSendResetEmail(
+                            normalizedEmail,
+                            {
+                                isSending = false
+                                feedbackIsError = false
+                                feedbackMessage =
+                                    "Link de recuperação enviado. Verifique seu e-mail."
+                            },
+                            { error ->
+                                isSending = false
+                                feedbackIsError = true
+                                feedbackMessage = error.toUserMessage()
+                            }
+                        )
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSending
             ) {
-                Text("Enviar link")
+                if (isSending) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Enviar link")
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
                 onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSending
             ) {
                 Text("Voltar")
             }
         }
     }
+}
+
+private fun PasswordResetError.toUserMessage(): String = when (this) {
+    PasswordResetError.INVALID_EMAIL -> "Digite um e-mail válido."
+    PasswordResetError.USER_NOT_FOUND -> "Não encontramos uma conta com esse e-mail."
+    PasswordResetError.UNKNOWN -> "Não foi possível enviar o link. Tente novamente."
 }
