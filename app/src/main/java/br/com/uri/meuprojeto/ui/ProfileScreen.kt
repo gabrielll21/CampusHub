@@ -42,6 +42,7 @@ fun ProfileScreen(
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) -> Unit,
+    onBack: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -206,6 +207,16 @@ fun ProfileScreen(
                 ) {
                     Text("Editar perfil")
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSaving
+            ) {
+                Text("Voltar")
             }
 
             Spacer(modifier = Modifier.height(12.dp))

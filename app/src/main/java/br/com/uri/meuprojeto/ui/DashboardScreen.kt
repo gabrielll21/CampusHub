@@ -1,6 +1,7 @@
 package br.com.uri.meuprojeto.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ fun DashboardScreen(
     isLoading: Boolean,
     errorMessage: String?,
     onLogout: () -> Unit,
+    onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -133,7 +135,10 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                         ShortcutCard(title = "Meus Eventos")
                         Spacer(modifier = Modifier.height(10.dp))
-                        ShortcutCard(title = "Meu Perfil")
+                        ShortcutCard(
+                            title = "Meu Perfil",
+                            onClick = onProfileClick
+                        )
 
                         Spacer(modifier = Modifier.height(28.dp))
 
@@ -209,9 +214,20 @@ private fun EventCard(event: DemoEvent) {
 }
 
 @Composable
-private fun ShortcutCard(title: String) {
+private fun ShortcutCard(
+    title: String,
+    onClick: (() -> Unit)? = null
+) {
+    val modifier = if (onClick != null) {
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -228,7 +244,7 @@ private fun ShortcutCard(title: String) {
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Em breve",
+                text = if (onClick != null) "Abrir" else "Em breve",
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge
             )
