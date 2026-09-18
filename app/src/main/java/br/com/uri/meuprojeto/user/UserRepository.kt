@@ -57,6 +57,23 @@ class UserRepository(
             }
     }
 
+    fun updateUserName(
+        uid: String,
+        name: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        firestore
+            .collection("users")
+            .document(uid)
+            .update("name", name)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Erro ao atualizar nome no Firestore", exception)
+                onError(exception)
+            }
+    }
+
     private companion object {
         const val TAG = "UserRepository"
     }
