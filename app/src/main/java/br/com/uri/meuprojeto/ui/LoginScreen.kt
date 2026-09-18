@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 fun LoginScreen(
     onLogin: (String, String) -> Unit,
     onCreateAccount: () -> Unit,
+    onForgotPassword: () -> Unit,
     isLoading: Boolean = false,
     feedbackMessage: String? = null,
     isSuccess: Boolean = false,
@@ -105,7 +107,17 @@ fun LoginScreen(
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            TextButton(
+                onClick = onForgotPassword,
+                modifier = Modifier.align(Alignment.End),
+                enabled = !isLoading
+            ) {
+                Text("Esqueci minha senha")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 onClick = { onLogin(email, password) },

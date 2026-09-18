@@ -27,6 +27,7 @@ import br.com.uri.meuprojeto.auth.AuthRepository
 import br.com.uri.meuprojeto.auth.LoginError
 import br.com.uri.meuprojeto.auth.RegistrationError
 import br.com.uri.meuprojeto.ui.DashboardScreen
+import br.com.uri.meuprojeto.ui.ForgotPasswordScreen
 import br.com.uri.meuprojeto.ui.LoginScreen
 import br.com.uri.meuprojeto.ui.ProfileScreen
 import br.com.uri.meuprojeto.ui.RegistrationScreen
@@ -92,8 +93,26 @@ fun AppNavigation(
                 onCreateAccount = {
                     navController.navigate(REGISTRATION_ROUTE)
                 },
+                onForgotPassword = {
+                    navController.navigate(FORGOT_PASSWORD_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
                 isLoading = isLoading,
                 feedbackMessage = feedbackMessage
+            )
+        }
+
+        composable(FORGOT_PASSWORD_ROUTE) {
+            ForgotPasswordScreen(
+                onSendResetEmail = { email, onSuccess, onError ->
+                    authRepository.sendPasswordResetEmail(
+                        email = email,
+                        onSuccess = onSuccess,
+                        onError = onError
+                    )
+                },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -325,6 +344,7 @@ private fun RegistrationError.toUserMessage(): String = when (this) {
 }
 
 private const val LOGIN_ROUTE = "login"
+private const val FORGOT_PASSWORD_ROUTE = "forgot_password"
 private const val REGISTRATION_ROUTE = "registration"
 private const val DASHBOARD_ROUTE = "dashboard"
 private const val PROFILE_ROUTE = "profile"
