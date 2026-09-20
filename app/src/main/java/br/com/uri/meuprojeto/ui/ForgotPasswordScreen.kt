@@ -36,6 +36,7 @@ import br.com.uri.meuprojeto.auth.PasswordResetError
 
 @Composable
 fun ForgotPasswordScreen(
+    initialEmail: String = "",
     onSendResetEmail: (
         email: String,
         onSuccess: () -> Unit,
@@ -44,7 +45,7 @@ fun ForgotPasswordScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var email by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable(initialEmail) { mutableStateOf(initialEmail) }
     var validationError by rememberSaveable { mutableStateOf<String?>(null) }
     var feedbackMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var feedbackIsError by rememberSaveable { mutableStateOf(false) }

@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 fun LoginScreen(
     onLogin: (String, String) -> Unit,
     onCreateAccount: () -> Unit,
-    onForgotPassword: () -> Unit,
+    onForgotPassword: (String) -> Unit,
     isLoading: Boolean = false,
     feedbackMessage: String? = null,
     isSuccess: Boolean = false,
@@ -110,7 +110,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             TextButton(
-                onClick = onForgotPassword,
+                onClick = { onForgotPassword(email) },
                 modifier = Modifier.align(Alignment.End),
                 enabled = !isLoading
             ) {

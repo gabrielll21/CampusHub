@@ -41,6 +41,7 @@ fun AppNavigation(
     val navController = rememberNavController()
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
+    var passwordResetEmail by rememberSaveable { mutableStateOf("") }
 
     val logout: () -> Unit = {
         authRepository.signOut()
@@ -93,7 +94,8 @@ fun AppNavigation(
                 onCreateAccount = {
                     navController.navigate(REGISTRATION_ROUTE)
                 },
-                onForgotPassword = {
+                onForgotPassword = { email ->
+                    passwordResetEmail = email
                     navController.navigate(FORGOT_PASSWORD_ROUTE) {
                         launchSingleTop = true
                     }
@@ -105,6 +107,7 @@ fun AppNavigation(
 
         composable(FORGOT_PASSWORD_ROUTE) {
             ForgotPasswordScreen(
+                initialEmail = passwordResetEmail,
                 onSendResetEmail = { email, onSuccess, onError ->
                     authRepository.sendPasswordResetEmail(
                         email = email,
