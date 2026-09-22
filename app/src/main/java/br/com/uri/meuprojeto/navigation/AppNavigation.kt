@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -26,7 +27,10 @@ import androidx.navigation.compose.rememberNavController
 import br.com.uri.meuprojeto.auth.AuthRepository
 import br.com.uri.meuprojeto.auth.LoginError
 import br.com.uri.meuprojeto.auth.RegistrationError
+import br.com.uri.meuprojeto.event.Event
+import br.com.uri.meuprojeto.event.EventRepository
 import br.com.uri.meuprojeto.ui.DashboardScreen
+import br.com.uri.meuprojeto.ui.EventsScreen
 import br.com.uri.meuprojeto.ui.ForgotPasswordScreen
 import br.com.uri.meuprojeto.ui.LoginScreen
 import br.com.uri.meuprojeto.ui.ProfileScreen
@@ -39,6 +43,7 @@ fun AppNavigation(
     userRepository: UserRepository
 ) {
     val navController = rememberNavController()
+    val eventRepository = remember { EventRepository() }
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
@@ -213,11 +218,53 @@ fun AppNavigation(
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 onLogout = logout,
+                onEventsClick = {
+                    navController.navigate(EVENTS_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
                 onProfileClick = {
                     navController.navigate(PROFILE_ROUTE) {
                         launchSingleTop = true
                     }
                 }
+            )
+        }
+
+        composable(EVENTS_ROUTE) {
+            var events by remember { mutableStateOf(emptyList<Event>()) }
+            var isLoading by rememberSaveable { mutableStateOf(true) }
+            var errorMessage by rememberSaveable {
+                mutableStateOf<String?>(null)
+            }
+
+            fun loadEvents() {
+                isLoading = true
+                errorMessage = null
+
+                eventRepository.getEvents(
+                    onSuccess = { loadedEvents ->
+                        events = loadedEvents
+                        isLoading = false
+                    },
+                    onError = {
+                        isLoading = false
+                        errorMessage =
+                            "Não foi possível carregar os eventos. Tente novamente."
+                    }
+                )
+            }
+
+            LaunchedEffect(Unit) {
+                loadEvents()
+            }
+
+            EventsScreen(
+                events = events,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
+                onRetry = { loadEvents() },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -350,4 +397,5 @@ private const val LOGIN_ROUTE = "login"
 private const val FORGOT_PASSWORD_ROUTE = "forgot_password"
 private const val REGISTRATION_ROUTE = "registration"
 private const val DASHBOARD_ROUTE = "dashboard"
+private const val EVENTS_ROUTE = "events"
 private const val PROFILE_ROUTE = "profile"

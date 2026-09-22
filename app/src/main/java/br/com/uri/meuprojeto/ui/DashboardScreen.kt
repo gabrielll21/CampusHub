@@ -37,6 +37,7 @@ fun DashboardScreen(
     isLoading: Boolean,
     errorMessage: String?,
     onLogout: () -> Unit,
+    onEventsClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -109,29 +110,16 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(28.dp))
 
                         SectionTitle(
-                            title = "Próximos eventos",
-                            supportingText = "Conteúdo demonstrativo da Sprint 1"
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        DEMO_EVENTS.forEachIndexed { index, event ->
-                            EventCard(event = event)
-                            if (index < DEMO_EVENTS.lastIndex) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(28.dp))
-
-                        SectionTitle(
                             title = "Atalhos",
-                            supportingText = "Funcionalidades planejadas para as próximas Sprints"
+                            supportingText = "Acesse os recursos do CampusHub"
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        ShortcutCard(title = "Eventos")
+                        ShortcutCard(
+                            title = "Eventos",
+                            onClick = onEventsClick
+                        )
                         Spacer(modifier = Modifier.height(10.dp))
                         ShortcutCard(title = "Meus Eventos")
                         Spacer(modifier = Modifier.height(10.dp))
@@ -190,30 +178,6 @@ private fun SectionTitle(
 }
 
 @Composable
-private fun EventCard(event: DemoEvent) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = event.title,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = event.details,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Evento demonstrativo",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-    }
-}
-
-@Composable
 private fun ShortcutCard(
     title: String,
     onClick: (() -> Unit)? = null
@@ -251,23 +215,3 @@ private fun ShortcutCard(
         }
     }
 }
-
-private data class DemoEvent(
-    val title: String,
-    val details: String
-)
-
-private val DEMO_EVENTS = listOf(
-    DemoEvent(
-        title = "Semana Acadêmica",
-        details = "25 de setembro • Auditório"
-    ),
-    DemoEvent(
-        title = "Hackathon URI",
-        details = "30 de setembro • Laboratório 2"
-    ),
-    DemoEvent(
-        title = "Feira de Tecnologia",
-        details = "05 de outubro • Prédio 5"
-    )
-)
