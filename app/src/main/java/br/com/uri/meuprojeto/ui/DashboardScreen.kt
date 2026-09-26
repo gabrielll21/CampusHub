@@ -38,6 +38,7 @@ fun DashboardScreen(
     errorMessage: String?,
     onLogout: () -> Unit,
     onEventsClick: () -> Unit,
+    onMyEventsClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -121,7 +122,10 @@ fun DashboardScreen(
                             onClick = onEventsClick
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        ShortcutCard(title = "Meus Eventos")
+                        ShortcutCard(
+                            title = "Meus Eventos",
+                            onClick = onMyEventsClick
+                        )
                         Spacer(modifier = Modifier.height(10.dp))
                         ShortcutCard(
                             title = "Meu Perfil",

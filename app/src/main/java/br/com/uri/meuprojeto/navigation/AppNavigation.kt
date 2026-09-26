@@ -36,6 +36,7 @@ import br.com.uri.meuprojeto.ui.EventDetailsScreen
 import br.com.uri.meuprojeto.ui.EventsScreen
 import br.com.uri.meuprojeto.ui.ForgotPasswordScreen
 import br.com.uri.meuprojeto.ui.LoginScreen
+import br.com.uri.meuprojeto.ui.MyEventsScreen
 import br.com.uri.meuprojeto.ui.ProfileScreen
 import br.com.uri.meuprojeto.ui.RegistrationScreen
 import br.com.uri.meuprojeto.user.UserRepository
@@ -229,6 +230,11 @@ fun AppNavigation(
                         launchSingleTop = true
                     }
                 },
+                onMyEventsClick = {
+                    navController.navigate(MY_EVENTS_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
                 onProfileClick = {
                     navController.navigate(PROFILE_ROUTE) {
                         launchSingleTop = true
@@ -378,6 +384,78 @@ fun AppNavigation(
             }
         }
 
+        composable(MY_EVENTS_ROUTE) {
+            var events by remember { mutableStateOf(emptyList<Event>()) }
+            var isLoading by rememberSaveable { mutableStateOf(true) }
+            var errorMessage by rememberSaveable {
+                mutableStateOf<String?>(null)
+            }
+
+            fun loadMyEvents() {
+                isLoading = true
+                errorMessage = null
+                events = emptyList()
+
+                val userId = authRepository.getCurrentUserUid()
+                if (userId == null) {
+                    isLoading = false
+                    errorMessage =
+                        "Não foi possível identificar o usuário autenticado."
+                    return
+                }
+
+                registrationRepository.getRegistrations(
+                    userId = userId,
+                    onSuccess = { registrations ->
+                        if (registrations.isEmpty()) {
+                            events = emptyList()
+                            isLoading = false
+                        } else {
+                            val registeredEventIds =
+                                registrations.map { it.eventId }.toSet()
+
+                            eventRepository.getEvents(
+                                onSuccess = { availableEvents ->
+                                    events = availableEvents.filter { event ->
+                                        event.id in registeredEventIds
+                                    }
+                                    isLoading = false
+                                },
+                                onError = {
+                                    isLoading = false
+                                    errorMessage =
+                                        "Não foi possível carregar seus eventos."
+                                }
+                            )
+                        }
+                    },
+                    onError = {
+                        isLoading = false
+                        errorMessage =
+                            "Não foi possível carregar suas inscrições."
+                    }
+                )
+            }
+
+            LaunchedEffect(Unit) {
+                loadMyEvents()
+            }
+
+            MyEventsScreen(
+                events = events,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
+                onEventClick = { event ->
+                    selectedEvent = event
+                    navController.navigate(EVENT_DETAILS_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
+                onRetry = { loadMyEvents() },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(PROFILE_ROUTE) {
             var uid by rememberSaveable { mutableStateOf<String?>(null) }
             var isLoading by rememberSaveable { mutableStateOf(true) }
@@ -509,4 +587,5 @@ private const val REGISTRATION_ROUTE = "registration"
 private const val DASHBOARD_ROUTE = "dashboard"
 private const val EVENTS_ROUTE = "events"
 private const val EVENT_DETAILS_ROUTE = "event_details"
+private const val MY_EVENTS_ROUTE = "my_events"
 private const val PROFILE_ROUTE = "profile"
