@@ -88,6 +88,34 @@ class RegistrationRepository(
             }
     }
 
+    fun getRegistrations(
+        userId: String,
+        onSuccess: (List<Registration>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        registrationsCollection
+            .whereEqualTo("userId", userId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val registrations = snapshot.documents.mapNotNull { document ->
+                    val registration = document.toRegistration()
+                    if (registration == null) {
+                        Log.w(
+                            TAG,
+                            "Inscrição ${document.id} ignorada por possuir campos inválidos"
+                        )
+                    }
+                    registration
+                }
+
+                onSuccess(registrations)
+            }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Erro ao consultar inscrições do usuário", exception)
+                onError(exception)
+            }
+    }
+
     fun deleteRegistration(
         registrationId: String,
         onSuccess: () -> Unit,
