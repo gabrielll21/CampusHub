@@ -30,6 +30,7 @@ import br.com.uri.meuprojeto.auth.RegistrationError
 import br.com.uri.meuprojeto.event.Event
 import br.com.uri.meuprojeto.event.EventRepository
 import br.com.uri.meuprojeto.ui.DashboardScreen
+import br.com.uri.meuprojeto.ui.EventDetailsScreen
 import br.com.uri.meuprojeto.ui.EventsScreen
 import br.com.uri.meuprojeto.ui.ForgotPasswordScreen
 import br.com.uri.meuprojeto.ui.LoginScreen
@@ -47,11 +48,13 @@ fun AppNavigation(
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
+    var selectedEvent by remember { mutableStateOf<Event?>(null) }
 
     val logout: () -> Unit = {
         authRepository.signOut()
         currentUserName = null
         currentUserEmail = null
+        selectedEvent = null
         navController.navigate(LOGIN_ROUTE) {
             popUpTo(DASHBOARD_ROUTE) {
                 inclusive = true
@@ -264,8 +267,23 @@ fun AppNavigation(
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 onRetry = { loadEvents() },
+                onEventClick = { event ->
+                    selectedEvent = event
+                    navController.navigate(EVENT_DETAILS_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
+        }
+
+        composable(EVENT_DETAILS_ROUTE) {
+            selectedEvent?.let { event ->
+                EventDetailsScreen(
+                    event = event,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(PROFILE_ROUTE) {
@@ -398,4 +416,5 @@ private const val FORGOT_PASSWORD_ROUTE = "forgot_password"
 private const val REGISTRATION_ROUTE = "registration"
 private const val DASHBOARD_ROUTE = "dashboard"
 private const val EVENTS_ROUTE = "events"
+private const val EVENT_DETAILS_ROUTE = "event_details"
 private const val PROFILE_ROUTE = "profile"

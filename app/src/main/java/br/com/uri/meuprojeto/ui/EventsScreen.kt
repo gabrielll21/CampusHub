@@ -1,6 +1,7 @@
 package br.com.uri.meuprojeto.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ fun EventsScreen(
     isLoading: Boolean,
     errorMessage: String?,
     onRetry: () -> Unit,
+    onEventClick: (Event) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -85,7 +87,10 @@ fun EventsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(events, key = { event -> event.id }) { event ->
-                            EventCard(event = event)
+                            EventCard(
+                                event = event,
+                                onClick = onEventClick
+                            )
                         }
                     }
                 }
@@ -103,8 +108,15 @@ fun EventsScreen(
 }
 
 @Composable
-private fun EventCard(event: Event) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+private fun EventCard(
+    event: Event,
+    onClick: (Event) -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(event) }
+    ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(event.title, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
