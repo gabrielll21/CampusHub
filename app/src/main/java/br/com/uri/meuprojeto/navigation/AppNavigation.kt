@@ -29,6 +29,8 @@ import br.com.uri.meuprojeto.auth.LoginError
 import br.com.uri.meuprojeto.auth.RegistrationError
 import br.com.uri.meuprojeto.event.Event
 import br.com.uri.meuprojeto.event.EventRepository
+import br.com.uri.meuprojeto.registration.Registration
+import br.com.uri.meuprojeto.registration.RegistrationRepository
 import br.com.uri.meuprojeto.ui.DashboardScreen
 import br.com.uri.meuprojeto.ui.EventDetailsScreen
 import br.com.uri.meuprojeto.ui.EventsScreen
@@ -45,6 +47,7 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
     val eventRepository = remember { EventRepository() }
+    val registrationRepository = remember { RegistrationRepository() }
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
@@ -279,8 +282,97 @@ fun AppNavigation(
 
         composable(EVENT_DETAILS_ROUTE) {
             selectedEvent?.let { event ->
+                var registration by remember(event.id) {
+                    mutableStateOf<Registration?>(null)
+                }
+                var isRegistrationLoading by remember(event.id) {
+                    mutableStateOf(true)
+                }
+                var registrationMessage by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var isRegistrationMessageError by remember(event.id) {
+                    mutableStateOf(false)
+                }
+                val userId = authRepository.getCurrentUserUid()
+
+                LaunchedEffect(event.id, userId) {
+                    if (userId == null) {
+                        isRegistrationLoading = false
+                        isRegistrationMessageError = true
+                        registrationMessage =
+                            "Não foi possível identificar o usuário autenticado."
+                    } else {
+                        isRegistrationLoading = true
+                        registrationRepository.getRegistration(
+                            userId = userId,
+                            eventId = event.id,
+                            onSuccess = { currentRegistration ->
+                                registration = currentRegistration
+                                isRegistrationLoading = false
+                            },
+                            onError = {
+                                isRegistrationLoading = false
+                                isRegistrationMessageError = true
+                                registrationMessage =
+                                    "Não foi possível consultar sua inscrição."
+                            }
+                        )
+                    }
+                }
+
                 EventDetailsScreen(
                     event = event,
+                    isRegistered = registration != null,
+                    isRegistrationLoading = isRegistrationLoading,
+                    registrationMessage = registrationMessage,
+                    isRegistrationMessageError = isRegistrationMessageError,
+                    onRegister = {
+                        if (!isRegistrationLoading && userId != null) {
+                            isRegistrationLoading = true
+                            registrationMessage = null
+                            registrationRepository.createRegistration(
+                                userId = userId,
+                                eventId = event.id,
+                                onSuccess = { createdRegistration ->
+                                    registration = createdRegistration
+                                    isRegistrationLoading = false
+                                    isRegistrationMessageError = false
+                                    registrationMessage =
+                                        "Inscrição realizada com sucesso!"
+                                },
+                                onError = {
+                                    isRegistrationLoading = false
+                                    isRegistrationMessageError = true
+                                    registrationMessage =
+                                        "Não foi possível realizar a inscrição."
+                                }
+                            )
+                        }
+                    },
+                    onCancelRegistration = {
+                        val currentRegistration = registration
+                        if (!isRegistrationLoading && currentRegistration != null) {
+                            isRegistrationLoading = true
+                            registrationMessage = null
+                            registrationRepository.deleteRegistration(
+                                registrationId = currentRegistration.id,
+                                onSuccess = {
+                                    registration = null
+                                    isRegistrationLoading = false
+                                    isRegistrationMessageError = false
+                                    registrationMessage =
+                                        "Inscrição cancelada com sucesso."
+                                },
+                                onError = {
+                                    isRegistrationLoading = false
+                                    isRegistrationMessageError = true
+                                    registrationMessage =
+                                        "Não foi possível cancelar a inscrição."
+                                }
+                            )
+                        }
+                    },
                     onBack = { navController.popBackStack() }
                 )
             }
