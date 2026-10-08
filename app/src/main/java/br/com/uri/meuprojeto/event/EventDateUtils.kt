@@ -7,7 +7,7 @@ import java.time.format.DateTimeParseException
 import java.time.format.ResolverStyle
 import java.util.Locale
 
-private val EVENT_TIME_ZONE: ZoneId = ZoneId.of("America/Sao_Paulo")
+internal val EVENT_TIME_ZONE_ID: ZoneId = ZoneId.of("America/Sao_Paulo")
 
 private val LEGACY_DATE_FORMATTER: DateTimeFormatter =
     DateTimeFormatter
@@ -19,7 +19,7 @@ fun resolveEventDate(event: Event): LocalDate? {
         return startsAt
             .toDate()
             .toInstant()
-            .atZone(EVENT_TIME_ZONE)
+            .atZone(EVENT_TIME_ZONE_ID)
             .toLocalDate()
     }
 
@@ -32,4 +32,12 @@ fun resolveEventDate(event: Event): LocalDate? {
     } catch (_: DateTimeParseException) {
         null
     }
+}
+
+fun resolveEventStatus(
+    event: Event,
+    today: LocalDate = LocalDate.now(EVENT_TIME_ZONE_ID)
+): EventStatus = when (val eventDate = resolveEventDate(event)) {
+    null -> EventStatus.UNKNOWN
+    else -> if (eventDate < today) EventStatus.ENDED else EventStatus.UPCOMING
 }
