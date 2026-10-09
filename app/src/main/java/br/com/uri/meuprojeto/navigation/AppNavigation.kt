@@ -29,6 +29,7 @@ import br.com.uri.meuprojeto.auth.LoginError
 import br.com.uri.meuprojeto.auth.RegistrationError
 import br.com.uri.meuprojeto.event.Event
 import br.com.uri.meuprojeto.event.EventRepository
+import br.com.uri.meuprojeto.favorite.FavoriteRepository
 import br.com.uri.meuprojeto.registration.Registration
 import br.com.uri.meuprojeto.registration.RegistrationRepository
 import br.com.uri.meuprojeto.ui.DashboardScreen
@@ -49,6 +50,7 @@ fun AppNavigation(
     val navController = rememberNavController()
     val eventRepository = remember { EventRepository() }
     val registrationRepository = remember { RegistrationRepository() }
+    val favoriteRepository = remember { FavoriteRepository() }
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
@@ -301,6 +303,18 @@ fun AppNavigation(
                     mutableStateOf(false)
                 }
                 val userId = authRepository.getCurrentUserUid()
+                var isFavorite by remember(event.id, userId) {
+                    mutableStateOf<Boolean?>(null)
+                }
+                var isFavoriteLoading by remember(event.id, userId) {
+                    mutableStateOf(true)
+                }
+                var favoriteMessage by remember(event.id, userId) {
+                    mutableStateOf<String?>(null)
+                }
+                var isFavoriteMessageError by remember(event.id, userId) {
+                    mutableStateOf(false)
+                }
 
                 LaunchedEffect(event.id, userId) {
                     if (userId == null) {
@@ -327,12 +341,48 @@ fun AppNavigation(
                     }
                 }
 
+                LaunchedEffect(event.id, userId) {
+                    isFavorite = null
+                    favoriteMessage = null
+
+                    if (userId == null) {
+                        isFavoriteLoading = false
+                        isFavoriteMessageError = true
+                        favoriteMessage =
+                            "Não foi possível identificar o usuário autenticado."
+                    } else if (event.id.isBlank()) {
+                        isFavoriteLoading = false
+                        isFavoriteMessageError = true
+                        favoriteMessage = "Não foi possível identificar o evento."
+                    } else {
+                        isFavoriteLoading = true
+                        favoriteRepository.isFavorite(
+                            userId = userId,
+                            eventId = event.id,
+                            onSuccess = { favoriteExists ->
+                                isFavorite = favoriteExists
+                                isFavoriteLoading = false
+                            },
+                            onError = {
+                                isFavoriteLoading = false
+                                isFavoriteMessageError = true
+                                favoriteMessage =
+                                    "Não foi possível consultar o favorito."
+                            }
+                        )
+                    }
+                }
+
                 EventDetailsScreen(
                     event = event,
                     isRegistered = registration != null,
                     isRegistrationLoading = isRegistrationLoading,
                     registrationMessage = registrationMessage,
                     isRegistrationMessageError = isRegistrationMessageError,
+                    isFavorite = isFavorite,
+                    isFavoriteLoading = isFavoriteLoading,
+                    favoriteMessage = favoriteMessage,
+                    isFavoriteMessageError = isFavoriteMessageError,
                     onRegister = {
                         if (!isRegistrationLoading && userId != null) {
                             isRegistrationLoading = true
@@ -377,6 +427,56 @@ fun AppNavigation(
                                         "Não foi possível cancelar a inscrição."
                                 }
                             )
+                        }
+                    },
+                    onToggleFavorite = {
+                        val currentUserId = userId
+                        val currentFavorite = isFavorite
+                        if (
+                            !isFavoriteLoading &&
+                            currentUserId != null &&
+                            event.id.isNotBlank() &&
+                            currentFavorite != null
+                        ) {
+                            isFavoriteLoading = true
+                            favoriteMessage = null
+                            isFavoriteMessageError = false
+
+                            if (currentFavorite) {
+                                favoriteRepository.removeFavorite(
+                                    userId = currentUserId,
+                                    eventId = event.id,
+                                    onSuccess = {
+                                        isFavorite = false
+                                        isFavoriteLoading = false
+                                        favoriteMessage =
+                                            "Evento removido dos favoritos."
+                                    },
+                                    onError = {
+                                        isFavoriteLoading = false
+                                        isFavoriteMessageError = true
+                                        favoriteMessage =
+                                            "Não foi possível remover o favorito."
+                                    }
+                                )
+                            } else {
+                                favoriteRepository.addFavorite(
+                                    userId = currentUserId,
+                                    eventId = event.id,
+                                    onSuccess = {
+                                        isFavorite = true
+                                        isFavoriteLoading = false
+                                        favoriteMessage =
+                                            "Evento adicionado aos favoritos."
+                                    },
+                                    onError = {
+                                        isFavoriteLoading = false
+                                        isFavoriteMessageError = true
+                                        favoriteMessage =
+                                            "Não foi possível adicionar o favorito."
+                                    }
+                                )
+                            }
                         }
                     },
                     onBack = { navController.popBackStack() }

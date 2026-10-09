@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -35,8 +37,13 @@ fun EventDetailsScreen(
     isRegistrationLoading: Boolean,
     registrationMessage: String?,
     isRegistrationMessageError: Boolean,
+    isFavorite: Boolean?,
+    isFavoriteLoading: Boolean,
+    favoriteMessage: String?,
+    isFavoriteMessageError: Boolean,
     onRegister: () -> Unit,
     onCancelRegistration: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -66,6 +73,54 @@ fun EventDetailsScreen(
                 modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.headlineMedium
             )
+
+            if (isFavoriteLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .size(28.dp),
+                    strokeWidth = 2.dp
+                )
+            } else if (isFavorite != null && event.id.isNotBlank()) {
+                IconButton(
+                    onClick = onToggleFavorite,
+                    enabled = !isFavoriteLoading,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .semantics {
+                            contentDescription = if (isFavorite) {
+                                "Remover dos favoritos"
+                            } else {
+                                "Adicionar aos favoritos"
+                            }
+                        }
+                ) {
+                    Text(
+                        text = if (isFavorite) "♥" else "♡",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            favoriteMessage?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.semantics {
+                        liveRegion = if (isFavoriteMessageError) {
+                            LiveRegionMode.Assertive
+                        } else {
+                            LiveRegionMode.Polite
+                        }
+                    },
+                    color = if (isFavoriteMessageError) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
