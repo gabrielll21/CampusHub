@@ -37,6 +37,7 @@ import br.com.uri.meuprojeto.ui.EventDetailsScreen
 import br.com.uri.meuprojeto.ui.EventsScreen
 import br.com.uri.meuprojeto.ui.ForgotPasswordScreen
 import br.com.uri.meuprojeto.ui.LoginScreen
+import br.com.uri.meuprojeto.ui.MyFavoritesScreen
 import br.com.uri.meuprojeto.ui.MyEventsScreen
 import br.com.uri.meuprojeto.ui.ProfileScreen
 import br.com.uri.meuprojeto.ui.RegistrationScreen
@@ -55,6 +56,7 @@ fun AppNavigation(
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
     var selectedEvent by remember { mutableStateOf<Event?>(null) }
+    var favoritesRefreshKey by rememberSaveable { mutableStateOf(0) }
 
     val logout: () -> Unit = {
         authRepository.signOut()
@@ -234,6 +236,11 @@ fun AppNavigation(
                 },
                 onMyEventsClick = {
                     navController.navigate(MY_EVENTS_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
+                onMyFavoritesClick = {
+                    navController.navigate(MY_FAVORITES_ROUTE) {
                         launchSingleTop = true
                     }
                 },
@@ -449,6 +456,7 @@ fun AppNavigation(
                                     onSuccess = {
                                         isFavorite = false
                                         isFavoriteLoading = false
+                                        favoritesRefreshKey++
                                         favoriteMessage =
                                             "Evento removido dos favoritos."
                                     },
@@ -466,6 +474,7 @@ fun AppNavigation(
                                     onSuccess = {
                                         isFavorite = true
                                         isFavoriteLoading = false
+                                        favoritesRefreshKey++
                                         favoriteMessage =
                                             "Evento adicionado aos favoritos."
                                     },
@@ -552,6 +561,75 @@ fun AppNavigation(
                     }
                 },
                 onRetry = { loadMyEvents() },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(MY_FAVORITES_ROUTE) {
+            var events by remember { mutableStateOf(emptyList<Event>()) }
+            var isLoading by rememberSaveable { mutableStateOf(true) }
+            var errorMessage by rememberSaveable {
+                mutableStateOf<String?>(null)
+            }
+
+            fun loadMyFavorites() {
+                isLoading = true
+                errorMessage = null
+                events = emptyList()
+
+                val userId = authRepository.getCurrentUserUid()
+                if (userId == null) {
+                    isLoading = false
+                    errorMessage =
+                        "Não foi possível identificar o usuário autenticado."
+                    return
+                }
+
+                favoriteRepository.getFavoriteEventIds(
+                    userId = userId,
+                    onSuccess = { favoriteEventIds ->
+                        if (favoriteEventIds.isEmpty()) {
+                            events = emptyList()
+                            isLoading = false
+                        } else {
+                            eventRepository.getEvents(
+                                onSuccess = { availableEvents ->
+                                    events = availableEvents.filter { event ->
+                                        event.id in favoriteEventIds
+                                    }
+                                    isLoading = false
+                                },
+                                onError = {
+                                    isLoading = false
+                                    errorMessage =
+                                        "Não foi possível carregar seus favoritos."
+                                }
+                            )
+                        }
+                    },
+                    onError = {
+                        isLoading = false
+                        errorMessage =
+                            "Não foi possível carregar seus favoritos."
+                    }
+                )
+            }
+
+            LaunchedEffect(favoritesRefreshKey) {
+                loadMyFavorites()
+            }
+
+            MyFavoritesScreen(
+                events = events,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
+                onEventClick = { event ->
+                    selectedEvent = event
+                    navController.navigate(EVENT_DETAILS_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
+                onRetry = { loadMyFavorites() },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -688,4 +766,5 @@ private const val DASHBOARD_ROUTE = "dashboard"
 private const val EVENTS_ROUTE = "events"
 private const val EVENT_DETAILS_ROUTE = "event_details"
 private const val MY_EVENTS_ROUTE = "my_events"
+private const val MY_FAVORITES_ROUTE = "my_favorites"
 private const val PROFILE_ROUTE = "profile"

@@ -39,6 +39,7 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     onEventsClick: () -> Unit,
     onMyEventsClick: () -> Unit,
+    onMyFavoritesClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -125,6 +126,11 @@ fun DashboardScreen(
                         ShortcutCard(
                             title = "Meus Eventos",
                             onClick = onMyEventsClick
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ShortcutCard(
+                            title = "Meus Favoritos",
+                            onClick = onMyFavoritesClick
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         ShortcutCard(
