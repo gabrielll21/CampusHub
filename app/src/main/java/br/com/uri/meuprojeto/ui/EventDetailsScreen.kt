@@ -1,6 +1,7 @@
 package br.com.uri.meuprojeto.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +35,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import br.com.uri.meuprojeto.comment.Comment
 import br.com.uri.meuprojeto.event.Event
+import br.com.uri.meuprojeto.event.EventStatus
+import br.com.uri.meuprojeto.rating.Rating
+import br.com.uri.meuprojeto.rating.calculateAverageRating
 import com.google.firebase.Timestamp
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -68,6 +72,18 @@ fun EventDetailsScreen(
     commentMutationLoadingId: String?,
     commentMutationMessage: String?,
     isCommentMutationMessageError: Boolean,
+    ratings: List<Rating>,
+    isRatingsLoading: Boolean,
+    ratingsErrorMessage: String?,
+    userRating: Rating?,
+    isUserRatingLoading: Boolean,
+    userRatingErrorMessage: String?,
+    selectedRatingScore: Int?,
+    isRatingMutationLoading: Boolean,
+    ratingMessage: String?,
+    isRatingMessageError: Boolean,
+    eventStatus: EventStatus,
+    canRate: Boolean,
     onRegister: () -> Unit,
     onCancelRegistration: () -> Unit,
     onToggleFavorite: () -> Unit,
@@ -81,6 +97,9 @@ fun EventDetailsScreen(
     onRequestDeleteComment: (Comment) -> Unit,
     onCancelDeleteComment: () -> Unit,
     onConfirmDeleteComment: () -> Unit,
+    onRetryRatings: () -> Unit,
+    onRatingScoreSelected: (Int) -> Unit,
+    onSubmitRating: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -244,6 +263,26 @@ fun EventDetailsScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            RatingSection(
+                ratings = ratings,
+                isRatingsLoading = isRatingsLoading,
+                ratingsErrorMessage = ratingsErrorMessage,
+                userRating = userRating,
+                isUserRatingLoading = isUserRatingLoading,
+                userRatingErrorMessage = userRatingErrorMessage,
+                selectedRatingScore = selectedRatingScore,
+                isRatingMutationLoading = isRatingMutationLoading,
+                ratingMessage = ratingMessage,
+                isRatingMessageError = isRatingMessageError,
+                eventStatus = eventStatus,
+                canRate = canRate,
+                onRetryRatings = onRetryRatings,
+                onRatingScoreSelected = onRatingScoreSelected,
+                onSubmitRating = onSubmitRating
+            )
 
             Spacer(modifier = Modifier.height(28.dp))
 
@@ -504,6 +543,193 @@ fun EventDetailsScreen(
         )
     }
 }
+
+@Composable
+private fun RatingSection(
+    ratings: List<Rating>,
+    isRatingsLoading: Boolean,
+    ratingsErrorMessage: String?,
+    userRating: Rating?,
+    isUserRatingLoading: Boolean,
+    userRatingErrorMessage: String?,
+    selectedRatingScore: Int?,
+    isRatingMutationLoading: Boolean,
+    ratingMessage: String?,
+    isRatingMessageError: Boolean,
+    eventStatus: EventStatus,
+    canRate: Boolean,
+    onRetryRatings: () -> Unit,
+    onRatingScoreSelected: (Int) -> Unit,
+    onSubmitRating: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Avaliações",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        when {
+            isRatingsLoading -> CircularProgressIndicator(
+                modifier = Modifier
+                    .size(28.dp)
+                    .align(Alignment.CenterHorizontally),
+                strokeWidth = 2.dp
+            )
+
+            ratingsErrorMessage != null -> Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = ratingsErrorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedButton(onClick = onRetryRatings) {
+                        Text("Tentar novamente")
+                    }
+                }
+            }
+
+            else -> {
+                val average = calculateAverageRating(ratings)
+                if (average == null) {
+                    Text(
+                        text = "Ainda não há avaliações.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    val countLabel = if (ratings.size == 1) {
+                        "1 avaliação"
+                    } else {
+                        "${ratings.size} avaliações"
+                    }
+                    Text(
+                        text = "Avaliação média: ${formatAverageRating(average)} / 5 ($countLabel)",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+
+        userRatingErrorMessage?.let { message ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        if (canRate) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Avalie este evento",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            if (isUserRatingLoading) {
+                Spacer(modifier = Modifier.height(8.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                (1..5).forEach { score ->
+                    if (selectedRatingScore == score) {
+                        Button(
+                            onClick = { onRatingScoreSelected(score) },
+                            enabled = !isRatingMutationLoading && !isUserRatingLoading,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Text(score.toString())
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { onRatingScoreSelected(score) },
+                            enabled = !isRatingMutationLoading && !isUserRatingLoading,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Text(score.toString())
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onSubmitRating,
+                enabled = selectedRatingScore != null &&
+                    !isRatingMutationLoading &&
+                    !isUserRatingLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isRatingMutationLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(if (userRating == null) "Enviar avaliação" else "Atualizar avaliação")
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = when (eventStatus) {
+                    EventStatus.UPCOMING ->
+                        "A avaliação estará disponível após o encerramento do evento."
+                    EventStatus.ENDED ->
+                        "Somente estudantes inscritos podem avaliar este evento."
+                    EventStatus.UNKNOWN ->
+                        "A avaliação está indisponível para este evento."
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (!isUserRatingLoading && userRating != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Sua avaliação: ${userRating.score} / 5",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        ratingMessage?.let { message ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                modifier = Modifier.semantics {
+                    liveRegion = if (isRatingMessageError) {
+                        LiveRegionMode.Assertive
+                    } else {
+                        LiveRegionMode.Polite
+                    }
+                },
+                color = if (isRatingMessageError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+private fun formatAverageRating(average: Double): String =
+    String.format(Locale.ROOT, "%.1f", average).replace('.', ',')
 
 private fun formatCommentDate(timestamp: Timestamp?): String {
     return timestamp?.toDate()

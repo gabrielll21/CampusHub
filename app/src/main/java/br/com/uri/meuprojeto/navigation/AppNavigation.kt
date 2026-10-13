@@ -31,7 +31,11 @@ import br.com.uri.meuprojeto.comment.Comment
 import br.com.uri.meuprojeto.comment.CommentRepository
 import br.com.uri.meuprojeto.event.Event
 import br.com.uri.meuprojeto.event.EventRepository
+import br.com.uri.meuprojeto.event.EventStatus
+import br.com.uri.meuprojeto.event.resolveEventStatus
 import br.com.uri.meuprojeto.favorite.FavoriteRepository
+import br.com.uri.meuprojeto.rating.Rating
+import br.com.uri.meuprojeto.rating.RatingRepository
 import br.com.uri.meuprojeto.registration.Registration
 import br.com.uri.meuprojeto.registration.RegistrationRepository
 import br.com.uri.meuprojeto.ui.DashboardScreen
@@ -55,6 +59,7 @@ fun AppNavigation(
     val registrationRepository = remember { RegistrationRepository() }
     val favoriteRepository = remember { FavoriteRepository() }
     val commentRepository = remember { CommentRepository() }
+    val ratingRepository = remember { RatingRepository() }
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
@@ -364,6 +369,42 @@ fun AppNavigation(
                 var isCommentMutationMessageError by remember(event.id) {
                     mutableStateOf(false)
                 }
+                var ratings by remember(event.id) {
+                    mutableStateOf(emptyList<Rating>())
+                }
+                var isRatingsLoading by remember(event.id) {
+                    mutableStateOf(true)
+                }
+                var ratingsErrorMessage by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var userRating by remember(event.id, userId) {
+                    mutableStateOf<Rating?>(null)
+                }
+                var isUserRatingLoading by remember(event.id, userId) {
+                    mutableStateOf(true)
+                }
+                var userRatingErrorMessage by remember(event.id, userId) {
+                    mutableStateOf<String?>(null)
+                }
+                var selectedRatingScore by remember(event.id, userId) {
+                    mutableStateOf<Int?>(null)
+                }
+                var isRatingMutationLoading by remember(event.id, userId) {
+                    mutableStateOf(false)
+                }
+                var ratingMessage by remember(event.id, userId) {
+                    mutableStateOf<String?>(null)
+                }
+                var isRatingMessageError by remember(event.id, userId) {
+                    mutableStateOf(false)
+                }
+
+                val eventStatus = resolveEventStatus(event)
+                val canRate = !isRegistrationLoading &&
+                    userId != null &&
+                    registration != null &&
+                    eventStatus == EventStatus.ENDED
 
                 fun loadComments() {
                     if (event.id.isBlank()) {
@@ -386,6 +427,66 @@ fun AppNavigation(
                             isCommentsLoading = false
                             commentsErrorMessage =
                                 "Não foi possível carregar os comentários."
+                        }
+                    )
+                }
+
+                fun loadRatings() {
+                    if (event.id.isBlank()) {
+                        isRatingsLoading = false
+                        ratingsErrorMessage =
+                            "Não foi possível identificar o evento."
+                        return
+                    }
+
+                    isRatingsLoading = true
+                    ratingsErrorMessage = null
+
+                    ratingRepository.getRatings(
+                        eventId = event.id,
+                        onSuccess = { loadedRatings ->
+                            ratings = loadedRatings
+                            isRatingsLoading = false
+                        },
+                        onError = {
+                            isRatingsLoading = false
+                            ratingsErrorMessage =
+                                "Não foi possível carregar as avaliações."
+                        }
+                    )
+                }
+
+                fun loadUserRating() {
+                    if (event.id.isBlank()) {
+                        isUserRatingLoading = false
+                        userRatingErrorMessage =
+                            "Não foi possível identificar o evento."
+                        return
+                    }
+
+                    val currentUserId = userId
+                    if (currentUserId.isNullOrBlank()) {
+                        isUserRatingLoading = false
+                        userRatingErrorMessage =
+                            "Não foi possível identificar o usuário autenticado."
+                        return
+                    }
+
+                    isUserRatingLoading = true
+                    userRatingErrorMessage = null
+
+                    ratingRepository.getUserRating(
+                        eventId = event.id,
+                        userId = currentUserId,
+                        onSuccess = { loadedRating ->
+                            userRating = loadedRating
+                            selectedRatingScore = loadedRating?.score
+                            isUserRatingLoading = false
+                        },
+                        onError = {
+                            isUserRatingLoading = false
+                            userRatingErrorMessage =
+                                "Não foi possível carregar sua avaliação."
                         }
                     )
                 }
@@ -417,6 +518,14 @@ fun AppNavigation(
 
                 LaunchedEffect(event.id) {
                     loadComments()
+                }
+
+                LaunchedEffect(event.id) {
+                    loadRatings()
+                }
+
+                LaunchedEffect(event.id, userId) {
+                    loadUserRating()
                 }
 
                 LaunchedEffect(event.id, userId) {
@@ -475,6 +584,18 @@ fun AppNavigation(
                     commentMutationLoadingId = commentMutationLoadingId,
                     commentMutationMessage = commentMutationMessage,
                     isCommentMutationMessageError = isCommentMutationMessageError,
+                    ratings = ratings,
+                    isRatingsLoading = isRatingsLoading,
+                    ratingsErrorMessage = ratingsErrorMessage,
+                    userRating = userRating,
+                    isUserRatingLoading = isUserRatingLoading,
+                    userRatingErrorMessage = userRatingErrorMessage,
+                    selectedRatingScore = selectedRatingScore,
+                    isRatingMutationLoading = isRatingMutationLoading,
+                    ratingMessage = ratingMessage,
+                    isRatingMessageError = isRatingMessageError,
+                    eventStatus = eventStatus,
+                    canRate = canRate,
                     onRegister = {
                         if (!isRegistrationLoading && userId != null) {
                             isRegistrationLoading = true
@@ -775,6 +896,71 @@ fun AppNavigation(
                                         isCommentMutationMessageError = true
                                         commentMutationMessage =
                                             "Não foi possível excluir o comentário."
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    onRetryRatings = {
+                        loadRatings()
+                        loadUserRating()
+                    },
+                    onRatingScoreSelected = { score ->
+                        if (
+                            canRate &&
+                            !isRatingMutationLoading &&
+                            score in 1..5
+                        ) {
+                            selectedRatingScore = score
+                            ratingMessage = null
+                            isRatingMessageError = false
+                        }
+                    },
+                    onSubmitRating = {
+                        val currentUserId = userId
+                        val score = selectedRatingScore
+
+                        when {
+                            currentUserId.isNullOrBlank() -> {
+                                isRatingMessageError = true
+                                ratingMessage =
+                                    "Não foi possível identificar o usuário autenticado."
+                            }
+
+                            !canRate -> {
+                                isRatingMessageError = true
+                                ratingMessage =
+                                    "Você não pode avaliar este evento no momento."
+                            }
+
+                            score == null || score !in 1..5 -> {
+                                isRatingMessageError = true
+                                ratingMessage = "Selecione uma nota de 1 a 5."
+                            }
+
+                            !isRatingMutationLoading -> {
+                                isRatingMutationLoading = true
+                                ratingMessage = null
+                                isRatingMessageError = false
+
+                                ratingRepository.setRating(
+                                    eventId = event.id,
+                                    userId = currentUserId,
+                                    score = score,
+                                    onSuccess = {
+                                        isRatingMutationLoading = false
+                                        isRatingMessageError = false
+                                        ratingMessage =
+                                            "Avaliação salva com sucesso."
+                                        loadRatings()
+                                        loadUserRating()
+                                    },
+                                    onError = {
+                                        isRatingMutationLoading = false
+                                        selectedRatingScore = userRating?.score
+                                        isRatingMessageError = true
+                                        ratingMessage =
+                                            "Não foi possível salvar a avaliação."
                                     }
                                 )
                             }
