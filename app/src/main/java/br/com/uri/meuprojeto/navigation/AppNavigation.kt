@@ -27,6 +27,8 @@ import androidx.navigation.compose.rememberNavController
 import br.com.uri.meuprojeto.auth.AuthRepository
 import br.com.uri.meuprojeto.auth.LoginError
 import br.com.uri.meuprojeto.auth.RegistrationError
+import br.com.uri.meuprojeto.comment.Comment
+import br.com.uri.meuprojeto.comment.CommentRepository
 import br.com.uri.meuprojeto.event.Event
 import br.com.uri.meuprojeto.event.EventRepository
 import br.com.uri.meuprojeto.favorite.FavoriteRepository
@@ -52,6 +54,7 @@ fun AppNavigation(
     val eventRepository = remember { EventRepository() }
     val registrationRepository = remember { RegistrationRepository() }
     val favoriteRepository = remember { FavoriteRepository() }
+    val commentRepository = remember { CommentRepository() }
     var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
     var currentUserEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var passwordResetEmail by rememberSaveable { mutableStateOf("") }
@@ -322,6 +325,70 @@ fun AppNavigation(
                 var isFavoriteMessageError by remember(event.id, userId) {
                     mutableStateOf(false)
                 }
+                var comments by remember(event.id) {
+                    mutableStateOf(emptyList<Comment>())
+                }
+                var isCommentsLoading by remember(event.id) {
+                    mutableStateOf(true)
+                }
+                var commentsErrorMessage by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var commentContent by remember(event.id) {
+                    mutableStateOf("")
+                }
+                var isCommentSubmitting by remember(event.id) {
+                    mutableStateOf(false)
+                }
+                var commentSubmissionMessage by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var isCommentSubmissionError by remember(event.id) {
+                    mutableStateOf(false)
+                }
+                var editingCommentId by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var editingCommentContent by remember(event.id) {
+                    mutableStateOf("")
+                }
+                var deletingCommentId by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var commentMutationLoadingId by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var commentMutationMessage by remember(event.id) {
+                    mutableStateOf<String?>(null)
+                }
+                var isCommentMutationMessageError by remember(event.id) {
+                    mutableStateOf(false)
+                }
+
+                fun loadComments() {
+                    if (event.id.isBlank()) {
+                        isCommentsLoading = false
+                        commentsErrorMessage =
+                            "Não foi possível identificar o evento."
+                        return
+                    }
+
+                    isCommentsLoading = true
+                    commentsErrorMessage = null
+
+                    commentRepository.getComments(
+                        eventId = event.id,
+                        onSuccess = { loadedComments ->
+                            comments = loadedComments
+                            isCommentsLoading = false
+                        },
+                        onError = {
+                            isCommentsLoading = false
+                            commentsErrorMessage =
+                                "Não foi possível carregar os comentários."
+                        }
+                    )
+                }
 
                 LaunchedEffect(event.id, userId) {
                     if (userId == null) {
@@ -346,6 +413,10 @@ fun AppNavigation(
                             }
                         )
                     }
+                }
+
+                LaunchedEffect(event.id) {
+                    loadComments()
                 }
 
                 LaunchedEffect(event.id, userId) {
@@ -390,6 +461,20 @@ fun AppNavigation(
                     isFavoriteLoading = isFavoriteLoading,
                     favoriteMessage = favoriteMessage,
                     isFavoriteMessageError = isFavoriteMessageError,
+                    comments = comments,
+                    isCommentsLoading = isCommentsLoading,
+                    commentsErrorMessage = commentsErrorMessage,
+                    commentContent = commentContent,
+                    isCommentSubmitting = isCommentSubmitting,
+                    commentSubmissionMessage = commentSubmissionMessage,
+                    isCommentSubmissionError = isCommentSubmissionError,
+                    currentUserId = userId,
+                    editingCommentId = editingCommentId,
+                    editingCommentContent = editingCommentContent,
+                    deletingCommentId = deletingCommentId,
+                    commentMutationLoadingId = commentMutationLoadingId,
+                    commentMutationMessage = commentMutationMessage,
+                    isCommentMutationMessageError = isCommentMutationMessageError,
                     onRegister = {
                         if (!isRegistrationLoading && userId != null) {
                             isRegistrationLoading = true
@@ -483,6 +568,213 @@ fun AppNavigation(
                                         isFavoriteMessageError = true
                                         favoriteMessage =
                                             "Não foi possível adicionar o favorito."
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    onCommentContentChange = { content ->
+                        commentContent = content
+                        commentSubmissionMessage = null
+                        isCommentSubmissionError = false
+                    },
+                    onRetryComments = { loadComments() },
+                    onSubmitComment = {
+                        val normalizedContent = commentContent.trim()
+                        val currentUserId = userId
+                        val normalizedAuthorName = currentUserName?.trim()
+
+                        when {
+                            event.id.isBlank() -> {
+                                isCommentSubmissionError = true
+                                commentSubmissionMessage =
+                                    "Não foi possível identificar o evento."
+                            }
+
+                            currentUserId.isNullOrBlank() -> {
+                                isCommentSubmissionError = true
+                                commentSubmissionMessage =
+                                    "Não foi possível identificar o usuário autenticado."
+                            }
+
+                            normalizedAuthorName.isNullOrBlank() -> {
+                                isCommentSubmissionError = true
+                                commentSubmissionMessage =
+                                    "Não foi possível carregar seu nome de usuário."
+                            }
+
+                            normalizedContent.isEmpty() -> {
+                                isCommentSubmissionError = true
+                                commentSubmissionMessage =
+                                    "Escreva um comentário antes de publicar."
+                            }
+
+                            else -> {
+                                isCommentSubmitting = true
+                                commentSubmissionMessage = null
+                                isCommentSubmissionError = false
+
+                                commentRepository.addComment(
+                                    eventId = event.id,
+                                    authorId = currentUserId,
+                                    authorName = normalizedAuthorName,
+                                    content = normalizedContent,
+                                    onSuccess = {
+                                        commentContent = ""
+                                        isCommentSubmitting = false
+                                        isCommentSubmissionError = false
+                                        commentSubmissionMessage =
+                                            "Comentário publicado com sucesso."
+                                        loadComments()
+                                    },
+                                    onError = {
+                                        isCommentSubmitting = false
+                                        isCommentSubmissionError = true
+                                        commentSubmissionMessage =
+                                            "Não foi possível publicar o comentário."
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    onStartEditComment = { comment ->
+                        if (
+                            comment.authorId == userId &&
+                            commentMutationLoadingId == null &&
+                            editingCommentId == null &&
+                            deletingCommentId == null
+                        ) {
+                            editingCommentId = comment.id
+                            editingCommentContent = comment.content
+                            deletingCommentId = null
+                            commentMutationMessage = null
+                            isCommentMutationMessageError = false
+                        }
+                    },
+                    onEditCommentContentChange = { content ->
+                        editingCommentContent = content
+                        commentMutationMessage = null
+                        isCommentMutationMessageError = false
+                    },
+                    onCancelEditComment = {
+                        if (commentMutationLoadingId == null) {
+                            editingCommentId = null
+                            editingCommentContent = ""
+                            commentMutationMessage = null
+                            isCommentMutationMessageError = false
+                        }
+                    },
+                    onSaveEditComment = {
+                        val commentId = editingCommentId
+                        val currentUserId = userId
+                        val normalizedContent = editingCommentContent.trim()
+
+                        when {
+                            commentId.isNullOrBlank() -> {
+                                isCommentMutationMessageError = true
+                                commentMutationMessage =
+                                    "Não foi possível identificar o comentário."
+                            }
+
+                            currentUserId.isNullOrBlank() -> {
+                                isCommentMutationMessageError = true
+                                commentMutationMessage =
+                                    "Não foi possível identificar o usuário autenticado."
+                            }
+
+                            normalizedContent.isEmpty() -> {
+                                isCommentMutationMessageError = true
+                                commentMutationMessage =
+                                    "O comentário não pode ficar vazio."
+                            }
+
+                            commentMutationLoadingId == null -> {
+                                commentMutationLoadingId = commentId
+                                commentMutationMessage = null
+                                isCommentMutationMessageError = false
+
+                                commentRepository.updateComment(
+                                    eventId = event.id,
+                                    commentId = commentId,
+                                    authorId = currentUserId,
+                                    content = normalizedContent,
+                                    onSuccess = {
+                                        editingCommentId = null
+                                        editingCommentContent = ""
+                                        commentMutationLoadingId = null
+                                        isCommentMutationMessageError = false
+                                        commentMutationMessage =
+                                            "Comentário atualizado com sucesso."
+                                        loadComments()
+                                    },
+                                    onError = {
+                                        commentMutationLoadingId = null
+                                        isCommentMutationMessageError = true
+                                        commentMutationMessage =
+                                            "Não foi possível atualizar o comentário."
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    onRequestDeleteComment = { comment ->
+                        if (
+                            comment.authorId == userId &&
+                            commentMutationLoadingId == null &&
+                            editingCommentId == null &&
+                            deletingCommentId == null
+                        ) {
+                            deletingCommentId = comment.id
+                            editingCommentId = null
+                            editingCommentContent = ""
+                            commentMutationMessage = null
+                            isCommentMutationMessageError = false
+                        }
+                    },
+                    onCancelDeleteComment = {
+                        if (commentMutationLoadingId == null) {
+                            deletingCommentId = null
+                        }
+                    },
+                    onConfirmDeleteComment = {
+                        val commentId = deletingCommentId
+                        val currentUserId = userId
+
+                        when {
+                            commentId.isNullOrBlank() -> {
+                                deletingCommentId = null
+                            }
+
+                            currentUserId.isNullOrBlank() -> {
+                                deletingCommentId = null
+                                isCommentMutationMessageError = true
+                                commentMutationMessage =
+                                    "Não foi possível identificar o usuário autenticado."
+                            }
+
+                            commentMutationLoadingId == null -> {
+                                commentMutationLoadingId = commentId
+                                commentMutationMessage = null
+                                isCommentMutationMessageError = false
+
+                                commentRepository.deleteComment(
+                                    eventId = event.id,
+                                    commentId = commentId,
+                                    authorId = currentUserId,
+                                    onSuccess = {
+                                        deletingCommentId = null
+                                        commentMutationLoadingId = null
+                                        isCommentMutationMessageError = false
+                                        commentMutationMessage =
+                                            "Comentário excluído com sucesso."
+                                        loadComments()
+                                    },
+                                    onError = {
+                                        deletingCommentId = null
+                                        commentMutationLoadingId = null
+                                        isCommentMutationMessageError = true
+                                        commentMutationMessage =
+                                            "Não foi possível excluir o comentário."
                                     }
                                 )
                             }
