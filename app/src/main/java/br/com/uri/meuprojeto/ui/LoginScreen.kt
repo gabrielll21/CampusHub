@@ -1,23 +1,17 @@
 package br.com.uri.meuprojeto.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,13 +21,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import br.com.uri.meuprojeto.ui.components.CampusHubButton
+import br.com.uri.meuprojeto.ui.components.CampusHubFeedback
+import br.com.uri.meuprojeto.ui.components.CampusHubOutlinedButton
+import br.com.uri.meuprojeto.ui.components.CampusHubTextField
 
 @Composable
 fun LoginScreen(
@@ -54,8 +51,7 @@ fun LoginScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(
             modifier = Modifier
@@ -66,48 +62,44 @@ fun LoginScreen(
             Text(
                 text = "CampusHub",
                 modifier = Modifier.semantics { heading() },
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.headlineMedium
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
-                text = "Eventos e experiências da sua universidade.",
+                text = "Entre para acompanhar a vida no campus.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
+            Spacer(modifier = Modifier.height(32.dp))
             Text(
-                text = "Login",
+                text = "Entrar",
                 style = MaterialTheme.typography.titleLarge
             )
-
             Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedTextField(
+            CampusHubTextField(
                 value = email,
                 onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("E-mail") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true
+                label = "E-mail",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier.fillMaxWidth()
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
+            CampusHubTextField(
                 value = password,
                 onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Senha") },
+                label = "Senha",
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
 
             TextButton(
                 onClick = { onForgotPassword(email) },
@@ -116,53 +108,31 @@ fun LoginScreen(
             ) {
                 Text("Esqueci minha senha")
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
+            Spacer(modifier = Modifier.height(8.dp))
+            CampusHubButton(
+                text = "Entrar",
                 onClick = { onLogin(email, password) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Login")
-                }
-            }
+                enabled = !isLoading,
+                isLoading = isLoading,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             feedbackMessage?.let { message ->
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = message,
-                    modifier = Modifier.semantics {
-                        liveRegion = if (isSuccess) {
-                            LiveRegionMode.Polite
-                        } else {
-                            LiveRegionMode.Assertive
-                        }
-                    },
-                    color = if (isSuccess) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                    style = MaterialTheme.typography.bodyMedium
+                CampusHubFeedback(
+                    message = message,
+                    isError = !isSuccess,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
+            Spacer(modifier = Modifier.height(16.dp))
+            CampusHubOutlinedButton(
+                text = "Criar conta",
                 onClick = onCreateAccount,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            ) {
-                Text("Criar conta")
-            }
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

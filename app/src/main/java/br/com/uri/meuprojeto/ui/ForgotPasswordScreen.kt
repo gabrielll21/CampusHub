@@ -1,23 +1,17 @@
 package br.com.uri.meuprojeto.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,13 +20,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import br.com.uri.meuprojeto.auth.PasswordResetError
+import br.com.uri.meuprojeto.ui.components.CampusHubButton
+import br.com.uri.meuprojeto.ui.components.CampusHubFeedback
+import br.com.uri.meuprojeto.ui.components.CampusHubOutlinedButton
+import br.com.uri.meuprojeto.ui.components.CampusHubTextField
 
 @Composable
 fun ForgotPasswordScreen(
@@ -57,8 +54,7 @@ fun ForgotPasswordScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(
             modifier = Modifier
@@ -68,77 +64,60 @@ fun ForgotPasswordScreen(
         ) {
             Text(
                 text = "CampusHub",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleLarge
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Recuperar senha",
                 modifier = Modifier.semantics { heading() },
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.headlineMedium
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Informe seu e-mail e enviaremos um link para redefinir sua senha.",
+                text = "Recupere o acesso à sua conta.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = "Recuperar senha",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Informe seu e-mail e enviaremos um link para redefinir sua senha.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            OutlinedTextField(
+            CampusHubTextField(
                 value = email,
                 onValueChange = {
                     email = it
                     validationError = null
                     feedbackMessage = null
                 },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("E-mail") },
-                placeholder = { Text("seuemail@universidade.edu.br") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                label = "E-mail",
+                placeholder = "seuemail@universidade.edu.br",
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done
+                ),
                 isError = validationError != null,
+                supportingText = validationError,
                 enabled = !isSending,
-                supportingText = validationError?.let { message ->
-                    {
-                        Text(
-                            text = message,
-                            modifier = Modifier.semantics {
-                                liveRegion = LiveRegionMode.Assertive
-                            }
-                        )
-                    }
-                },
-                singleLine = true
+                modifier = Modifier.fillMaxWidth()
             )
 
             feedbackMessage?.let { message ->
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = message,
-                    modifier = Modifier.semantics {
-                        liveRegion = if (feedbackIsError) {
-                            LiveRegionMode.Assertive
-                        } else {
-                            LiveRegionMode.Polite
-                        }
-                    },
-                    color = if (feedbackIsError) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                    style = MaterialTheme.typography.bodyMedium
+                CampusHubFeedback(
+                    message = message,
+                    isError = feedbackIsError,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
+            CampusHubButton(
+                text = "Enviar link",
                 onClick = {
                     val normalizedEmail = email.trim()
                     if (normalizedEmail.isEmpty()) {
@@ -146,7 +125,6 @@ fun ForgotPasswordScreen(
                     } else {
                         isSending = true
                         feedbackMessage = null
-
                         onSendResetEmail(
                             normalizedEmail,
                             {
@@ -163,28 +141,17 @@ fun ForgotPasswordScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSending
-            ) {
-                if (isSending) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Enviar link")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
+                enabled = !isSending,
+                isLoading = isSending,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            CampusHubOutlinedButton(
+                text = "Voltar",
                 onClick = onBack,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSending
-            ) {
-                Text("Voltar")
-            }
+                enabled = !isSending,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

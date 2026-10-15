@@ -75,3 +75,28 @@ fun CampusHubErrorState(
         }
     }
 }
+
+
+@Composable
+fun CampusHubFeedback(
+    message: String,
+    isError: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = message,
+        modifier = modifier.semantics {
+            liveRegion = if (isError) {
+                LiveRegionMode.Assertive
+            } else {
+                LiveRegionMode.Polite
+            }
+        },
+        color = if (isError) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
+        style = MaterialTheme.typography.bodyMedium
+    )
+}
